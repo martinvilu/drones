@@ -4,9 +4,11 @@
   "description": "Autonomous drone system and multi-model agent execution",
   "type": "module",
   "bin": {
-    "model-runner": "./skills/multi-model-runner/scripts/model-runner.mjs"
+    "model-runner": "./skills/multi-model-runner/scripts/model-runner.mjs",
+    "drones-swarm": "./skills/drones-swarm/scripts/swarm-orchestrator.mjs"
   },
   "scripts": {
-    "run:model": "node skills/multi-model-runner/scripts/model-runner.mjs"
+    "run:model": "node skills/multi-model-runner/scripts/model-runner.mjs",
+    "swarm": "node skills/drones-swarm/scripts/swarm-orchestrator.mjs"
   }
 }

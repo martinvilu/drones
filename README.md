@@ -2,16 +2,20 @@
 
 Repository for drone mission planning, flight control algorithms, and multi-model agent execution.
 
-## 🛠️ Multi-Model Runner Skill (`skills/multi-model-runner`)
+## 🛠️ Included Skills
 
+### 1. Multi-Model Runner (`skills/multi-model-runner`)
 Integrates external model execution (`opencode run`, `codex exec`) with **TypeSafe Jev (System One AI)** evaluation.
+
+### 2. Drones Swarm Coordinator (`skills/drones-swarm`)
+Simultaneously coordinates tasks across **OpenAI Codex**, **Claude Code**, and **OpenCode**, using **TypeSafe Jev** as supervisor for role specialization, cross-validation, and selecting the optimal solution.
 
 ### Quick Start:
 
 ```bash
-# Run task using default fast model (mimo-v2.5-free) evaluated with Jev
-node skills/multi-model-runner/scripts/model-runner.mjs "Write a PID controller for altitude hold in Python"
+# Multi-agent swarm execution with Jev supervisor
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs "Write a PID attitude controller in Python"
 
-# Run with high-capacity model
-node skills/multi-model-runner/scripts/model-runner.mjs -m opencode-go/qwen3.8-flash "Analyze flight log telemetry"
+# Run single model task evaluated with Jev
+node skills/multi-model-runner/scripts/model-runner.mjs "Write a Haversine waypoint distance formula"
 ```
