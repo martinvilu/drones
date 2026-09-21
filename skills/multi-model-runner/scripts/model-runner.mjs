@@ -89,8 +89,19 @@ if (opts.provider === 'opencode') {
     process.exit(1);
   }
   rawOutput = (result.stdout || '') + (result.stderr || '');
+} else if (opts.provider === 'copilot') {
+  const result = spawnSync('copilot', ['-p', opts.task], {
+    encoding: 'utf-8',
+    maxBuffer: 15 * 1024 * 1024
+  });
+
+  if (result.error) {
+    console.error(JSON.stringify({ error: `Failed to spawn copilot: ${result.error.message}` }));
+    process.exit(1);
+  }
+  rawOutput = (result.stdout || '') + (result.stderr || '');
 } else {
-  console.error(JSON.stringify({ error: `Unsupported provider: ${opts.provider}. Available: opencode, codex` }));
+  console.error(JSON.stringify({ error: `Unsupported provider: ${opts.provider}. Available: opencode, codex, copilot` }));
   process.exit(1);
 }
 

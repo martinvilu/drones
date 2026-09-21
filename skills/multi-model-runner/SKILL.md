@@ -45,7 +45,10 @@ Zero configuration required for local access. Supports free community models as 
 ### 2. OpenAI Codex CLI (`codex exec`)
 - Native access via `codex exec "<task>"` for non-interactive coding executions.
 
-### 3. Claude Code / Anthropic
+### 3. GitHub Copilot CLI (`copilot -p`)
+- Full non-interactive scripting access via `copilot -p "<task>"`.
+
+### 4. Claude Code / Anthropic
 - Can be invoked directly via CLI or API when Anthropic credentials (`ANTHROPIC_API_KEY`) are present in the environment.
 
 ---
