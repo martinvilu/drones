@@ -1,121 +1,91 @@
 ---
 name: drones-swarm
 description: >-
-  Coordinates and distributes mission tasks concurrently among OpenAI Codex, Claude Code, and OpenCode
-  agents simultaneously, using TypeSafe Jev (System One AI) as the real-time supervisor to specialize roles,
+  Coordinates and distributes coding tasks concurrently among OpenCode, OpenAI Codex, GitHub Copilot,
+  and Claude Code services simultaneously, using TypeSafe Jev (System One AI) as the real-time supervisor to specialize roles,
   evaluate candidate solutions, reach swarm consensus, and select the optimal implementation.
 ---
 
-# 🛸 Drones Swarm Coordinator & Multi-Agent Supervisor
+# 🛸 Drones: Multi-Service Swarm Coordinator & Jev Supervisor
 
-The **`drones-swarm`** skill orchestrates a heterogeneous multi-agent swarm composed of **OpenAI Codex**, **Claude Code**, and **OpenCode**, with **TypeSafe Jev (System One AI)** acting as the central intelligence and supervisory layer.
+The **`drones-swarm`** skill orchestrates multi-agent software engineering work across multiple external services—**OpenCode**, **OpenAI Codex**, **GitHub Copilot**, and **Claude Code**—using **TypeSafe Jev (System One AI)** as an ultra-fast supervisor and quality arbiter.
 
 ---
 
-## 🏗️ Architecture & Orchestration Flow
+## 🏗️ Architecture & Service Coordination Flow
 
 ```mermaid
 flowchart TD
-    MissionReq["User / Mission Task"] --> SupervisorTriage["1. Jev Supervisor Triage<br>(Role Specialization)"]
+    TaskReq["Coding Task / Feature Request"] --> JevSupervisor["1. Jev Supervisor Triage<br>(Role Specialization & Category Detection)"]
     
-    subgraph SwarmExecution ["2. Concurrent Swarm Execution"]
-        SupervisorTriage --> Codex["Codex Agent<br>(Algorithmic Core)"]
-        SupervisorTriage --> Claude["Claude Code Agent<br>(Architecture & Failsafes)"]
-        SupervisorTriage --> OpenCode["OpenCode Agent<br>(Practical Prototyping)"]
+    subgraph MultiServiceExecution ["2. Concurrent Multi-Service Execution"]
+        JevSupervisor --> OpenCodeService["OpenCode<br>(opencode run)"]
+        JevSupervisor --> CodexService["OpenAI Codex<br>(codex exec)"]
+        JevSupervisor --> CopilotService["GitHub Copilot<br>(copilot -p)"]
+        JevSupervisor --> ClaudeService["Claude Code<br>(claude --print)"]
     end
 
-    Codex --> Outputs["Candidate Solutions"]
-    Claude --> Outputs
-    OpenCode --> Outputs
+    OpenCodeService --> Solutions["Candidate Code Solutions"]
+    CodexService --> Solutions
+    CopilotService --> Solutions
+    ClaudeService --> Solutions
 
-    Outputs --> JevAudit["3. Jev Cross-Audit & Consensus<br>(Feasibility, Quality, Hallucination Check)"]
-    JevAudit --> SelectedOutput["4. Winning Implementation Applied"]
+    Solutions --> JevArbitration["3. Jev Quality & Consensus Arbitration<br>(Consensus, Code Quality, Readiness in ~250ms)"]
+    JevArbitration --> WinnerApplied["4. Optimal Solution Selected & Applied"]
 ```
 
 ---
 
-## ⚡ Agent Role Specialization via Jev
+## ⚡ Service Role Specialization via Jev
 
-1. **Codex Agent (`codex exec`)**:
-   - Specialized in mathematical modeling, control theory (PID, LQR), state estimation, and rigorous unit testing.
-2. **Claude Code Agent (`claude`)**:
-   - Specialized in clean architecture, type contracts, boundary failsafes (e.g. Return-to-Home / low battery safety), and documentation.
-3. **OpenCode Agent (`opencode run`)**:
-   - Specialized in rapid prototyping, hardware I/O protocols (MAVLink, ROS2, serial telemetry), and modular utility functions.
-4. **TypeSafe Jev Supervisor (`askJev`)**:
-   - **System One decisions in ~250ms**:
-     - Determines domain classification (`algorithm_and_control`, `navigation_and_pathfinding`, etc.).
-     - Rates swarm consensus and mutual consistency (`swarmConsensusScore`).
-     - Selects the best performing solution (`bestPerformingAgent`).
-     - Flags drone flight safety compliance (`overallMissionFeasibility`).
+1. **OpenCode (`opencode run`)**:
+   - Ideal for rapid implementation generation, utility scripts, and zero-cost iteration using free community models.
+2. **OpenAI Codex (`codex exec`)**:
+   - Ideal for mathematical algorithms, data structures, and edge-case test suites.
+3. **GitHub Copilot (`copilot -p`)**:
+   - Ideal for idiomatic language patterns, standard library conventions, ecosystem tooling, and clean boilerplate.
+4. **Claude Code (`claude --print`)**:
+   - Ideal for architectural refactoring, strong typing, documentation, and defensive error boundaries.
+5. **TypeSafe Jev (`askJev`)**:
+   - Runs in **~250ms with just ~300 tokens** to specialize agent prompts, compute consensus scores, evaluate readability, and pick the winning code.
 
 ---
 
-## 💰 Cost Modes & Working Tiers (Adjustable)
+## 💰 Cost Modes (Adjustable)
 
-By design, **the default mode is `economy`**, prioritizing zero or ultra-low token expenditure before escalating.
+By default, **Drones begins in `economy` mode** to prevent unnecessary token consumption:
 
-| Mode | Token Cost | Default Model | Typical Swarm Composition |
+| Mode | Cost | Default Model / Strategy | Active Services |
 |---|---|---|---|
-| **`economy`** *(Default)* | **$0 / Minimal** | `opencode/mimo-v2.5-free` (or Nemotron free) | OpenCode free tier or single lean agent |
-| **`balanced`** | Low / Moderate | `opencode-go/qwen3.8-flash` / `gpt-4o-mini` | OpenCode Flash + Codex mini |
-| **`premium`** | Full / Frontier | `opencode-go/qwen3.8-max` / `o3-mini` / `claude-3-7-sonnet` | Full multi-agent consensus (Codex + Claude + OpenCode) |
+| **`economy`** *(Default)* | **$0 / Mínimo** | `opencode/mimo-v2.5-free` | OpenCode free tier or single lean pass |
+| **`balanced`** | Bajo / Moderado | `opencode-go/qwen3.8-flash` | OpenCode Flash + GitHub Copilot |
+| **`premium`** | Frontera | `opencode-go/qwen3.8-max` / `o3-mini` | OpenCode Max + Codex + Copilot + Claude Code |
 
 ### Adjusting Modes:
-1. **CLI Flag**: `--mode economy` / `--mode balanced` / `--mode premium`
-2. **Configuration File**: Edit `.dronesrc` in project root (`{ "mode": "economy" }`)
-3. **Environment Variable**: `export DRONES_MODE="balanced"`
+1. **Flag CLI**: `--mode economy` / `--mode balanced` / `--mode premium`
+2. **Config File**: `.dronesrc` (`{ "mode": "economy" }`)
+3. **Env Variable**: `export DRONES_MODE="balanced"`
 
 ---
 
 ## 🚀 Usage
 
-### Run Swarm with Adjustable Cost Mode
-
+### Multi-Service Swarm Execution
 ```bash
-# 1. Starts in economy mode (Free tier: mimo-v2.5-free)
-node skills/drones-swarm/scripts/swarm-orchestrator.mjs "Write a PID attitude controller in Python"
+# 1. Starts in economy mode (Free OpenCode model: mimo-v2.5-free)
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs "Write a rate limiter middleware in TypeScript with Redis backing"
 
-# 2. Balanced mode (Fast, low-cost frontier models)
-node skills/drones-swarm/scripts/swarm-orchestrator.mjs --mode balanced "Implement Kalman filter for drone sensors"
+# 2. Balanced mode (OpenCode Flash + GitHub Copilot)
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs --mode balanced "Implement LRU cache with O(1) get and put"
 
-# 3. Premium mode (Full concurrent swarm: Codex, Claude, OpenCode Max)
-node skills/drones-swarm/scripts/swarm-orchestrator.mjs --mode premium "Synthesize complete multi-copter collision avoidance system"
-```
+# 3. Explicit services subset
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs --agents opencode,copilot,codex "Build a JSON schema validator"
 
-# Run with specific agent subset
-node skills/drones-swarm/scripts/swarm-orchestrator.mjs --agents opencode,codex "Write an obstacle avoidance algorithm using simulated 2D LiDAR range data"
-
-# Output structured JSON for automated pipelines
-node skills/drones-swarm/scripts/swarm-orchestrator.mjs --json "Calculate drone optimal path using Dubins paths"
+# 4. JSON output for automated CI/CD agent workflows
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs --json "Parse JWT tokens safely without third-party deps"
 ```
 
 ### Direct Shortcut (npm)
-
 ```bash
-npm run swarm "Design a failsafe protocol for signal loss in PX4 autopilot"
-```
-
----
-
-## 📊 Sample Output
-
-```text
-=============================================================
-       🛸 DRONES SWARM COORDINATOR & JEV SUPERVISOR
-=============================================================
-🎯 Misión:           Implement a quadcopter attitude Kalman filter
-🌐 Dominio:          ALGORITHM_AND_CONTROL
-🏆 Agente Ganador:   CODEX (Confianza: 96%)
-📊 Consenso Swarm:   2.85 / 3
-🛡️ Viabilidad Vuelo: APROBADO ✔ (98%)
--------------------------------------------------------------
-⏱️ DESEMPEÑO DEL ENJAMBRE:
-  ⭐ [GANADOR] codex     : ✔ Exitoso en 2340ms
-     opencode  : ✔ Exitoso en 1890ms
-     claude    : ✔ Exitoso en 3100ms
--------------------------------------------------------------
-📄 SOLUCIÓN SELECCIONADA (CODEX):
-[Robust attitude estimation code]
-=============================================================
+npm run swarm "Implement WebSocket reconnect handler with exponential backoff"
 ```

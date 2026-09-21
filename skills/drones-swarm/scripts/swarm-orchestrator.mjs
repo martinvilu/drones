@@ -2,15 +2,22 @@
 /**
  * swarm-orchestrator.mjs
  * 
- * Multi-Agent Drone Swarm Coordinator
- * Dispatches and coordinates subtasks concurrently across Codex, Claude Code, and OpenCode,
- * supervising execution and synthesis with TypeSafe Jev (System One AI).
+ * Multi-Service Coding Swarm Coordinator ("Drones")
+ * Dispatches and coordinates software engineering tasks concurrently across:
+ * - OpenCode (`opencode run`)
+ * - OpenAI Codex (`codex exec`)
+ * - GitHub Copilot (`copilot -p`)
+ * - Claude Code (`claude --print`)
+ * 
+ * Supervised in real time by TypeSafe Jev (System One AI) to assign roles,
+ * evaluate code solutions, verify correctness, and select the optimal implementation.
  */
 
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { resolveCurrentTier, TIERS } from './config.mjs';
 
 // 1. Resolve TypeSafe API Key
 function resolveApiKey() {
@@ -51,8 +58,6 @@ async function askJev({ state, questions, model = 'jev-latest' }) {
   return await res.json();
 }
 
-import { resolveCurrentTier, TIERS } from './config.mjs';
-
 // 2. Parse CLI Arguments & Cost Mode
 const activeTier = resolveCurrentTier();
 const args = process.argv.slice(2);
@@ -86,12 +91,12 @@ for (let i = 0; i < args.length; i++) {
 if (!taskDescription) {
   console.error(JSON.stringify({
     error: 'Missing task description',
-    usage: 'node swarm-orchestrator.mjs [--mode economy|balanced|premium] [--agents opencode,codex,claude] [--model <opencode-model>] "Mission description..."'
+    usage: 'node swarm-orchestrator.mjs [--mode economy|balanced|premium] [--agents opencode,codex,copilot,claude] [--model <opencode-model>] "Coding task instructions..."'
   }));
   process.exit(1);
 }
 
-// 3. Spawning Agent Execution Runners
+// 3. Spawning Agent Execution Runners (Adapters for Multi-Service Providers)
 function runAgent(agentName, prompt) {
   return new Promise((resolveResult) => {
     const start = Date.now();
@@ -104,8 +109,12 @@ function runAgent(agentName, prompt) {
     } else if (agentName === 'codex') {
       cmd = 'codex';
       cmdArgs = ['exec', prompt];
+    } else if (agentName === 'copilot') {
+      // GitHub Copilot CLI non-interactive prompt mode (-p / --prompt)
+      cmd = 'copilot';
+      cmdArgs = ['-p', prompt];
     } else if (agentName === 'claude') {
-      // Direct claude CLI if installed or simulated runner
+      // Claude Code CLI non-interactive mode
       cmd = 'claude';
       cmdArgs = ['--print', prompt];
     } else {
@@ -114,7 +123,7 @@ function runAgent(agentName, prompt) {
         success: false,
         durationMs: 0,
         output: '',
-        error: `Unknown agent type: ${agentName}`
+        error: `Unknown agent service: ${agentName}`
       });
     }
 
@@ -164,84 +173,98 @@ function runAgent(agentName, prompt) {
 
 // 4. Main Swarm Orchestration Loop
 async function coordinateSwarm() {
-  console.error(`\n🛸 [Drones Swarm] Orchestrating task: "${taskDescription}"`);
-  console.error(`⚙️ Working Mode:    ${costMode.toUpperCase()} (Model: ${opencodeModel})`);
-  console.error(`🛰️ Active Agents:   ${selectedAgents.join(', ')}`);
+  console.error(`\n🛸 [Drones Swarm] Orchestrating coding task across services...`);
+  console.error(`📋 Task:            "${taskDescription}"`);
+  console.error(`⚙️ Cost Mode:       ${costMode.toUpperCase()} (OpenCode Model: ${opencodeModel})`);
+  console.error(`🛰️ Active Services: ${selectedAgents.join(', ')}`);
 
-  // Step A: Jev Task Triage & Role Specialization
-  console.error(`🔍 [Jev Supervisor] Analyzing task and specializing agent roles...`);
+  // Step A: Jev Task Triage & Multi-Service Specialization
+  console.error(`🔍 [Jev Supervisor] Triaging task and specializing service roles...`);
   let roleAssignment = {};
   try {
     const rolePlan = await askJev({
       model: 'jev-latest',
       state: {
-        mission: taskDescription,
-        availableAgents: selectedAgents
+        task: taskDescription,
+        availableServices: selectedAgents
       },
       questions: {
-        taskType: {
+        taskCategory: {
           type: 'choice',
-          instructions: 'What primary domain category does this drone task belong to?',
+          instructions: 'What primary software engineering category does this task belong to?',
           criteria: {
-            algorithm_and_control: 'Flight dynamics, PID controllers, sensor fusion (IMU, Kalman), telemetry',
-            navigation_and_pathfinding: 'Waypoint navigation, obstacle avoidance, GPS/SLAM coordinates, Haversine',
-            mission_architecture: 'State machines, mission coordination, API interfaces, safety fail-safes',
-            general_coding: 'General scripting, testing, utilities'
+            backend_and_api: 'Backend logic, server endpoints, data persistence, and APIs',
+            frontend_and_ui: 'Web components, styling, DOM interactions, frontend state',
+            algorithms_and_math: 'Core computation, complex algorithms, data structures, parsing',
+            testing_and_devops: 'Unit/integration tests, CI/CD, automation scripts, Docker',
+            refactoring_and_typing: 'Code refactoring, type annotations, error handling, clean architecture'
           }
         },
         codexSpecialization: {
           type: 'choice',
-          instructions: 'What role is best suited for the OpenAI Codex agent?',
+          instructions: 'What role is best suited for OpenAI Codex?',
           criteria: {
             algorithmic_core: 'Implement mathematical algorithms and core logic functions',
             test_and_verification: 'Write unit tests, boundary validations, and edge case assertions',
             architecture_scaffold: 'Design classes, data contracts, and structural interfaces'
           }
         },
+        copilotSpecialization: {
+          type: 'choice',
+          instructions: 'What role is best suited for GitHub Copilot?',
+          criteria: {
+            idiomatic_completion: 'Generate idiomatic, battle-tested standard code patterns and libraries',
+            cli_and_integration: 'Produce CLI handlers, ecosystem tooling, and script integration',
+            boilerplate_and_glue: 'Write clean boilerplate, data wrappers, and standard interfaces'
+          }
+        },
         claudeSpecialization: {
           type: 'choice',
-          instructions: 'What role is best suited for the Claude Code agent?',
+          instructions: 'What role is best suited for Claude Code?',
           criteria: {
             code_review_refactor: 'Refactor code, enforce clean architecture, and eliminate code smells',
             documentation_and_types: 'Add type annotations, docstrings, and architectural explanations',
-            defensive_fail_safes: 'Analyze safety edge cases, battery failsafes, and exception resilience'
+            defensive_robustness: 'Analyze safety edge cases, error resilience, and boundaries'
           }
         },
         opencodeSpecialization: {
           type: 'choice',
-          instructions: 'What role is best suited for the OpenCode agent?',
+          instructions: 'What role is best suited for OpenCode?',
           criteria: {
-            implementation_generation: 'Generate modular implementation code for the task',
-            telemetry_utilities: 'Write I/O utilities, logging, and data parsers',
-            rapid_prototyping: 'Draft initial functional script prototype'
+            implementation_generation: 'Generate modular, practical implementation code',
+            utility_scripts: 'Write I/O utilities, logging, and data parsers',
+            rapid_prototyping: 'Draft initial working script prototype'
           }
         }
       }
     });
 
     roleAssignment = {
-      domain: rolePlan.answers.taskType.choice,
+      category: rolePlan.answers.taskCategory.choice,
       codexRole: rolePlan.answers.codexSpecialization.choice,
+      copilotRole: rolePlan.answers.copilotSpecialization.choice,
       claudeRole: rolePlan.answers.claudeSpecialization.choice,
       opencodeRole: rolePlan.answers.opencodeSpecialization.choice
     };
-    console.error(`🎯 [Jev Supervisor] Roles assigned: Domain=${roleAssignment.domain}`);
+    console.error(`🎯 [Jev Supervisor] Task Category: ${roleAssignment.category}`);
   } catch (err) {
     console.error(`⚠️ [Jev Warning] Role assignment fallback: ${err.message}`);
-    roleAssignment = { domain: 'general_coding' };
+    roleAssignment = { category: 'general_coding' };
   }
 
   // Step B: Dispatch Concurrent Execution Across Swarm
-  console.error(`🚀 [Drones Swarm] Launching simultaneous execution across agents...`);
+  console.error(`🚀 [Drones Swarm] Launching simultaneous execution across active services...`);
   
   const tasks = selectedAgents.map(agent => {
     let tailoredPrompt = taskDescription;
     if (agent === 'codex') {
-      tailoredPrompt = `[Role: ${roleAssignment.codexRole || 'Algorithmic Implementation'}]\nTask: ${taskDescription}\nProvide precise, robust code.`;
+      tailoredPrompt = `[Role: ${roleAssignment.codexRole || 'Algorithmic Implementation'}]\nTask: ${taskDescription}\nProvide concise, production-ready code.`;
+    } else if (agent === 'copilot') {
+      tailoredPrompt = `[Role: ${roleAssignment.copilotRole || 'Idiomatic Implementation'}]\nTask: ${taskDescription}\nProvide idiomatic and clean code.`;
     } else if (agent === 'claude') {
-      tailoredPrompt = `[Role: ${roleAssignment.claudeRole || 'Clean Architecture & Failsafes'}]\nTask: ${taskDescription}\nFocus on clean patterns and resilience.`;
+      tailoredPrompt = `[Role: ${roleAssignment.claudeRole || 'Clean Architecture & Robustness'}]\nTask: ${taskDescription}\nFocus on clean design and robust error handling.`;
     } else if (agent === 'opencode') {
-      tailoredPrompt = `[Role: ${roleAssignment.opencodeRole || 'Implementation Prototype'}]\nTask: ${taskDescription}\nImplement practical modular solution.`;
+      tailoredPrompt = `[Role: ${roleAssignment.opencodeRole || 'Modular Prototype'}]\nTask: ${taskDescription}\nProvide practical modular code.`;
     }
     return runAgent(agent, tailoredPrompt);
   });
@@ -249,10 +272,10 @@ async function coordinateSwarm() {
   const swarmResults = await Promise.all(tasks);
 
   // Step C: Jev Evaluation, Cross-Audit & Selection
-  console.error(`⚖️ [Jev Supervisor] Evaluating agent outputs and ranking best solution...`);
+  console.error(`⚖️ [Jev Supervisor] Evaluating service outputs and selecting best solution...`);
   
   const candidateSummaries = swarmResults.map(r => ({
-    agent: r.agent,
+    service: r.agent,
     success: r.success,
     durationMs: r.durationMs,
     outputPreview: r.output.slice(0, 1000)
@@ -262,58 +285,72 @@ async function coordinateSwarm() {
     const supervisorRes = await askJev({
       model: 'jev-latest',
       state: {
-        missionTask: taskDescription,
-        domain: roleAssignment.domain,
-        agentOutputs: candidateSummaries
+        task: taskDescription,
+        category: roleAssignment.category,
+        serviceOutputs: candidateSummaries
       },
       questions: {
-        bestPerformingAgent: {
+        bestPerformingService: {
           type: 'choice',
-          instructions: 'Which agent produced the highest quality, most accurate and complete solution for this drone task?',
+          instructions: 'Which service generated the cleanest, most complete and functional solution?',
           criteria: {
-            opencode: 'OpenCode provided the best, most practical and complete solution',
-            codex: 'Codex provided the superior algorithmic and precise code implementation',
-            claude: 'Claude provided the most resilient, well-structured and elegant solution',
-            none_acceptable: 'None of the outputs met the quality standards; revisions required'
+            opencode: 'OpenCode generated the best practical implementation',
+            codex: 'OpenAI Codex generated the superior algorithmic/structured implementation',
+            copilot: 'GitHub Copilot generated the most idiomatic, clean implementation',
+            claude: 'Claude Code generated the most resilient, well-architected solution',
+            none_acceptable: 'None of the outputs met production quality'
           }
         },
         swarmConsensusScore: {
           type: 'score',
-          instructions: 'Rate the technical consistency, safety, and correctness across the swarm outputs.',
+          instructions: 'Rate the technical consistency and agreement across the service outputs.',
           criteria: [
-            'Conflicting or invalid approaches with severe errors or crashes',
-            'Disparate implementations with minor inconsistencies or gaps',
-            'Strong consensus on algorithm and structure with good implementations',
-            'Exemplary agreement on drone standards, math, and robust fail-safes'
+            'Conflicting or completely invalid code across services',
+            'Different patterns with minor discrepancies or missing pieces',
+            'Strong consensus on code architecture, libraries, and logic',
+            'Exemplary consensus and production-grade software engineering'
           ]
         },
-        overallMissionFeasibility: {
+        codeQualityAndReadability: {
+          type: 'score',
+          instructions: 'Rate the overall quality and maintainability of the winning code.',
+          criteria: [
+            'Messy, broken syntax, or unhandled exceptions',
+            'Working but unidiomatic with minor styling or logic gaps',
+            'Clean, readable, well structured and idiomatic code',
+            'Exemplary code with clear modularity, typing, and documentation'
+          ]
+        },
+        readyToIntegrate: {
           type: 'noul',
-          instructions: 'Are the produced solutions safe and viable to be integrated into an autonomous drone workflow?'
+          instructions: 'Is the winning code ready to be integrated into the codebase without fundamental rewrite?'
         }
       }
     });
 
     const sv = supervisorRes.answers;
-    const bestAgent = sv.bestPerformingAgent.choice;
-    const winningResult = swarmResults.find(r => r.agent === bestAgent) || swarmResults[0];
+    const bestService = sv.bestPerformingService.choice;
+    const winningResult = swarmResults.find(r => r.agent === bestService) || swarmResults[0];
 
     const finalReport = {
-      mission: taskDescription,
-      domain: roleAssignment.domain,
+      task: taskDescription,
+      costMode,
+      category: roleAssignment.category,
       supervisor: {
-        selectedWinner: bestAgent,
-        winnerConfidence: sv.bestPerformingAgent.confidence,
+        selectedWinner: bestService,
+        winnerConfidence: sv.bestPerformingService.confidence,
         consensusScore: sv.swarmConsensusScore.score,
         consensusMax: 3,
-        missionFeasible: sv.overallMissionFeasibility.noul > 0.6,
-        feasibilityProbability: sv.overallMissionFeasibility.noul
+        codeQuality: sv.codeQualityAndReadability.score,
+        codeQualityMax: 3,
+        readyToIntegrate: sv.readyToIntegrate.noul > 0.6,
+        readyProbability: sv.readyToIntegrate.noul
       },
-      agentResults: swarmResults.map(r => ({
-        agent: r.agent,
+      services: swarmResults.map(r => ({
+        service: r.agent,
         success: r.success,
         durationMs: r.durationMs,
-        isWinner: r.agent === bestAgent,
+        isWinner: r.agent === bestService,
         outputLength: r.output.length
       })),
       winningOutput: winningResult.output
@@ -323,28 +360,29 @@ async function coordinateSwarm() {
       console.log(JSON.stringify(finalReport, null, 2));
     } else {
       console.log('\n=============================================================');
-      console.log('       🛸 DRONES SWARM COORDINATOR & JEV SUPERVISOR');
+      console.log('       🛸 DRONES MULTI-SERVICE SWARM & JEV SUPERVISOR');
       console.log('=============================================================');
-      console.log(`🎯 Misión:           ${taskDescription}`);
-      console.log(`🌐 Dominio:          ${roleAssignment.domain.toUpperCase()}`);
-      console.log(`🏆 Agente Ganador:   ${bestAgent.toUpperCase()} (Confianza: ${(sv.bestPerformingAgent.confidence * 100).toFixed(0)}%)`);
-      console.log(`📊 Consenso Swarm:   ${sv.swarmConsensusScore.score.toFixed(2)} / 3`);
-      console.log(`🛡️ Viabilidad Vuelo: ${sv.overallMissionFeasibility.noul > 0.6 ? 'APROBADO ✔' : 'REQUIERE REVISIÓN ❌'} (${(sv.overallMissionFeasibility.noul * 100).toFixed(0)}%)`);
+      console.log(`📋 Tarea:             ${taskDescription}`);
+      console.log(`📁 Categoría:         ${roleAssignment.category.toUpperCase()}`);
+      console.log(`⚙️ Modo de Costo:     ${costMode.toUpperCase()}`);
+      console.log(`🏆 Servicio Ganador:  ${bestService.toUpperCase()} (Confianza: ${(sv.bestPerformingService.confidence * 100).toFixed(0)}%)`);
+      console.log(`📊 Consenso Swarm:    ${sv.swarmConsensusScore.score.toFixed(2)} / 3`);
+      console.log(`⭐ Calidad Código:    ${sv.codeQualityAndReadability.score.toFixed(2)} / 3`);
+      console.log(`🛡️ Listo para Aplicar:${sv.readyToIntegrate.noul > 0.6 ? ' SÍ ✔' : ' REQUIERE REVISIÓN ❌'} (${(sv.readyToIntegrate.noul * 100).toFixed(0)}%)`);
       console.log('-------------------------------------------------------------');
-      console.log('⏱️ DESEMPEÑO DEL ENJAMBRE:');
+      console.log('⏱️ DESEMPEÑO POR SERVICIO:');
       for (const res of swarmResults) {
-        const tag = res.agent === bestAgent ? '⭐ [GANADOR]' : '  ';
+        const tag = res.agent === bestService ? '⭐ [GANADOR]' : '  ';
         console.log(`  ${tag} ${res.agent.padEnd(10)}: ${res.success ? '✔ Exitoso' : '❌ Fallo'} en ${res.durationMs}ms`);
       }
       console.log('-------------------------------------------------------------');
-      console.log(`📄 SOLUCIÓN SELECCIONADA (${bestAgent.toUpperCase()}):`);
+      console.log(`📄 SOLUCIÓN SELECCIONADA (${bestService.toUpperCase()}):`);
       console.log(winningResult.output);
       console.log('=============================================================\n');
     }
 
   } catch (err) {
     console.error(`❌ [Jev Error] Swarm supervision error: ${err.message}`);
-    // Output fastest or first successful result
     const fallback = swarmResults.find(r => r.success) || swarmResults[0];
     console.log(fallback.output);
   }
