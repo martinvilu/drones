@@ -51,16 +51,27 @@ async function askJev({ state, questions, model = 'jev-latest' }) {
   return await res.json();
 }
 
-// 2. Parse CLI Arguments
+import { resolveCurrentTier, TIERS } from './config.mjs';
+
+// 2. Parse CLI Arguments & Cost Mode
+const activeTier = resolveCurrentTier();
 const args = process.argv.slice(2);
 let taskDescription = '';
-let selectedAgents = ['opencode', 'codex', 'claude'];
-let opencodeModel = 'opencode/mimo-v2.5-free';
+let selectedAgents = [...activeTier.primaryAgents];
+let opencodeModel = activeTier.opencodeModel;
+let costMode = activeTier.name;
 let jsonMode = false;
 
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
-  if (a === '--agents' && args[i + 1]) {
+  if (a === '--mode' && args[i + 1]) {
+    const requested = args[++i].toLowerCase();
+    if (TIERS[requested]) {
+      costMode = requested;
+      opencodeModel = TIERS[requested].opencodeModel;
+      selectedAgents = [...TIERS[requested].primaryAgents];
+    }
+  } else if (a === '--agents' && args[i + 1]) {
     selectedAgents = args[++i].split(',').map(s => s.trim().toLowerCase());
   } else if (a === '--model' || a === '-m') {
     opencodeModel = args[++i];
@@ -75,7 +86,7 @@ for (let i = 0; i < args.length; i++) {
 if (!taskDescription) {
   console.error(JSON.stringify({
     error: 'Missing task description',
-    usage: 'node swarm-orchestrator.mjs [--agents opencode,codex,claude] [--model <opencode-model>] "Mission description..."'
+    usage: 'node swarm-orchestrator.mjs [--mode economy|balanced|premium] [--agents opencode,codex,claude] [--model <opencode-model>] "Mission description..."'
   }));
   process.exit(1);
 }
@@ -154,7 +165,8 @@ function runAgent(agentName, prompt) {
 // 4. Main Swarm Orchestration Loop
 async function coordinateSwarm() {
   console.error(`\n🛸 [Drones Swarm] Orchestrating task: "${taskDescription}"`);
-  console.error(`🛰️ Active Agents: ${selectedAgents.join(', ')}`);
+  console.error(`⚙️ Working Mode:    ${costMode.toUpperCase()} (Model: ${opencodeModel})`);
+  console.error(`🛰️ Active Agents:   ${selectedAgents.join(', ')}`);
 
   // Step A: Jev Task Triage & Role Specialization
   console.error(`🔍 [Jev Supervisor] Analyzing task and specializing agent roles...`);

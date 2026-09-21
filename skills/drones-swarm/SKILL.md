@@ -51,13 +51,37 @@ flowchart TD
 
 ---
 
+## 💰 Cost Modes & Working Tiers (Adjustable)
+
+By design, **the default mode is `economy`**, prioritizing zero or ultra-low token expenditure before escalating.
+
+| Mode | Token Cost | Default Model | Typical Swarm Composition |
+|---|---|---|---|
+| **`economy`** *(Default)* | **$0 / Minimal** | `opencode/mimo-v2.5-free` (or Nemotron free) | OpenCode free tier or single lean agent |
+| **`balanced`** | Low / Moderate | `opencode-go/qwen3.8-flash` / `gpt-4o-mini` | OpenCode Flash + Codex mini |
+| **`premium`** | Full / Frontier | `opencode-go/qwen3.8-max` / `o3-mini` / `claude-3-7-sonnet` | Full multi-agent consensus (Codex + Claude + OpenCode) |
+
+### Adjusting Modes:
+1. **CLI Flag**: `--mode economy` / `--mode balanced` / `--mode premium`
+2. **Configuration File**: Edit `.dronesrc` in project root (`{ "mode": "economy" }`)
+3. **Environment Variable**: `export DRONES_MODE="balanced"`
+
+---
+
 ## 🚀 Usage
 
-### Run Simultaneous Swarm Execution
+### Run Swarm with Adjustable Cost Mode
 
 ```bash
-# Run with all active agents (OpenCode, Codex, Claude)
-node skills/drones-swarm/scripts/swarm-orchestrator.mjs "Implement a quadcopter attitude Kalman filter with gyro and accelerometer fusion in Python"
+# 1. Starts in economy mode (Free tier: mimo-v2.5-free)
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs "Write a PID attitude controller in Python"
+
+# 2. Balanced mode (Fast, low-cost frontier models)
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs --mode balanced "Implement Kalman filter for drone sensors"
+
+# 3. Premium mode (Full concurrent swarm: Codex, Claude, OpenCode Max)
+node skills/drones-swarm/scripts/swarm-orchestrator.mjs --mode premium "Synthesize complete multi-copter collision avoidance system"
+```
 
 # Run with specific agent subset
 node skills/drones-swarm/scripts/swarm-orchestrator.mjs --agents opencode,codex "Write an obstacle avoidance algorithm using simulated 2D LiDAR range data"

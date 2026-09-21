@@ -1,0 +1,5 @@
+{
+  "mode": "economy",
+  "defaultProvider": "opencode",
+  "description": "Drones swarm configuration: starts in economy (free/low-cost) mode. Adjust to 'balanced' or 'premium' as required."
+}

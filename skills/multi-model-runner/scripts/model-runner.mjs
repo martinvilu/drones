@@ -13,11 +13,15 @@
 import { spawnSync, execSync } from 'node:child_process';
 import { askJev } from './client.mjs';
 
+import { resolveCurrentTier, TIERS } from './config.mjs';
+
 function parseArgs() {
+  const activeTier = resolveCurrentTier();
   const args = process.argv.slice(2);
   const options = {
     provider: 'opencode',
-    model: 'opencode/mimo-v2.5-free',
+    mode: activeTier.name,
+    model: activeTier.opencodeModel,
     task: '',
     evaluate: true,
     json: false
@@ -25,7 +29,13 @@ function parseArgs() {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--provider' && args[i + 1]) {
+    if (arg === '--mode' && args[i + 1]) {
+      const req = args[++i].toLowerCase();
+      if (TIERS[req]) {
+        options.mode = req;
+        options.model = TIERS[req].opencodeModel;
+      }
+    } else if (arg === '--provider' && args[i + 1]) {
       options.provider = args[++i];
     } else if (arg === '-m' || arg === '--model') {
       options.model = args[++i];
