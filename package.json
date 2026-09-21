@@ -1,0 +1,12 @@
+{
+  "name": "drones",
+  "version": "1.0.0",
+  "description": "Autonomous drone system and multi-model agent execution",
+  "type": "module",
+  "bin": {
+    "model-runner": "./skills/multi-model-runner/scripts/model-runner.mjs"
+  },
+  "scripts": {
+    "run:model": "node skills/multi-model-runner/scripts/model-runner.mjs"
+  }
+}
